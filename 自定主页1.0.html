@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,interactive-widget=overlays-content,viewport-fit=cover">
+<title>主页</title>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js" onerror="window._sortableLoadFailed=true"></script>
+<style>
+*,html,body{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;width:100%}
+body{font-family:-apple-system,"HarmonyOS Sans",system-ui,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden;position:relative;background:0 0}
+.bg-layer{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-2;background-size:cover;background-position:center;background-repeat:no-repeat;transition:background-image .2s}
+.bg-layer.light-bg{background-color:#fff}
+.bg-layer.dark-bg{background-color:#000;display:none}
+.main-container{flex:1;display:flex;flex-direction:column;height:100%;width:100%;overflow:hidden;position:relative;z-index:1}
+.bookmarks-content{flex:1;display:flex;flex-direction:column;justify-content:flex-end;overflow-y:auto;overflow-x:hidden;padding:8px 12px 0;scrollbar-width:thin;scroll-behavior:smooth}
+.bookmarks-content::-webkit-scrollbar{width:3px}
+.bookmarks-content::-webkit-scrollbar-track{background:0 0}
+.bookmarks-content::-webkit-scrollbar-thumb{background:rgba(128,128,128,.4);border-radius:8px}
+.logo-icon-container{text-align:center;padding:0 20px;flex-shrink:0;height:var(--logo-icon-size,80px);display:flex;align-items:center;justify-content:center}
+.logo-icon-container img,.logo-icon-container .svg-logo-icon svg{height:var(--logo-icon-size,80px);width:auto;max-width:80%;object-fit:contain;display:inline-block;background:0 0;border:0;box-shadow:none;outline:0}
+.logo-icon-container .default-logo-icon{font-size:calc(var(--logo-icon-size,80px)*.36);font-weight:500;color:var(--text-adaptive);background:0 0;border:0;box-shadow:none;line-height:calc(var(--logo-icon-size,80px)*.5);display:inline-block;opacity:.85;letter-spacing:1px}
+.logo-container{text-align:center;padding:8px 20px 20px;flex-shrink:0;transition:padding-bottom .2s}
+.logo{font-size:var(--logo-font-size,60px);font-weight:700;letter-spacing:3px;font-family:Georgia,"Times New Roman","Segoe UI Emoji",serif;color:var(--logo-color,#f00);text-shadow:none;display:inline-block}
+.search-section{margin-bottom:var(--search-gap,20px);margin-top:0;flex-shrink:0}
+.search-section.hidden{display:none}
+.search-card{background:var(--card-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:32px;border:1px solid var(--border-color);box-shadow:var(--card-shadow);padding:6px 16px;transition:all .2s}
+.search-input{width:100%;background:0 0;border:0;padding:8px 0;font-size:17px;font-weight:500;color:var(--text-color);outline:0}
+.engine-scroll-container{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;white-space:nowrap;cursor:grab;user-select:none;margin-top:8px;padding-bottom:4px;display:none}
+.engine-scroll-container.show{display:block}
+.engine-scroll-container::-webkit-scrollbar{display:none}
+.engine-scroll-container:active{cursor:grabbing}
+.engine-options{display:inline-flex;gap:8px;padding:4px 0;white-space:nowrap}
+.engine-tag{display:inline-flex;align-items:center;justify-content:center;background:var(--tag-bg);border:.5px solid var(--border-color);border-radius:40px;padding:4px 12px;font-size:12px;font-weight:500;color:var(--text-color);cursor:pointer;transition:.1s;white-space:nowrap;flex-shrink:0;backdrop-filter:blur(4px)}
+.engine-tag:active{transform:scale(.96);background:var(--tag-active-bg)}
+.engine-tag.active{background:#3b82f6;color:#fff;border-color:transparent}
+html.berry-dark .engine-tag.active{background:#f97316}
+.bookmarks-wrapper{display:flex;flex-direction:column;width:100%;padding-bottom:calc(var(--bottom-spacing,30px) + env(safe-area-inset-bottom))}
+.bookmarks{display:grid;grid-template-columns:repeat(var(--bookmark-grid-cols,5),minmax(0,1fr));row-gap:var(--bookmark-grid-row-gap,2px);column-gap:8px;width:100%;max-width:100%;margin:0 auto;flex-shrink:0}
+.bookmark-item{display:flex;flex-direction:column;align-items:center;gap:var(--bookmark-item-gap,6px);padding:2px;border-radius:12px;cursor:pointer;text-decoration:none;transition:background .15s,transform .45s cubic-bezier(.34,1.56,.64,1);-webkit-touch-callout:none;background:0 0;min-width:0}
+.bookmark-item:active{background:rgba(128,128,128,.2);transform:scale(.92);transition:background .1s,transform .1s ease-out}
+.bookmark-icon{width:var(--bookmark-icon-size,54px);height:var(--bookmark-icon-size,54px);border-radius:var(--icon-radius,15px);background:var(--icon-bg);box-shadow:0 3px 10px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.05);display:flex;align-items:center;justify-content:center;font-size:calc(var(--bookmark-icon-size,54px)*.46);font-weight:600;color:#fff;flex-shrink:0;overflow:hidden;position:relative}
+.bookmark-icon img{width:75%;height:75%;object-fit:contain;border-radius:calc(var(--icon-radius,15px)*.5)}
+.bookmark-name{font-size:var(--bookmark-font-size,calc(var(--bookmark-icon-size,54px)*10/54));font-weight:600;text-align:center;overflow:hidden;white-space:nowrap;max-width:70px;width:100%;color:var(--text-adaptive);background:0 0;padding:0 4px;line-height:1.2;transition:color .2s;letter-spacing:.3px}
+.bookmark-add .bookmark-icon{background:var(--add-icon-bg);color:var(--add-icon-color);font-size:calc(var(--bookmark-icon-size,54px)*.5);font-weight:300;border:1.5px dashed var(--add-border);box-shadow:none}
+.bookmark-add .bookmark-name{color:var(--text-adaptive)}
+.sortable-drag{opacity:.6;transform:scale(.95);transition:transform .1s}
+.sortable-ghost{opacity:.4;background:rgba(0,0,0,.1);border-radius:16px}
+.menu-btn{position:fixed;top:calc(16px + env(safe-area-inset-top,0));left:16px;width:24px;height:24px;border-radius:6px;background:rgba(128,128,128,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:100;transition:all .2s;border:0;outline:0}
+.menu-btn:active{transform:scale(.92);background:rgba(128,128,128,.25)}
+.menu-icon{width:16px;height:12px;display:flex;flex-direction:column;justify-content:space-between}
+.menu-icon span{width:100%;height:1.8px;background-color:var(--menu-icon-color);border-radius:2px}
+html.berry-dark .menu-btn{background:rgba(200,200,200,.25)}
+html.berry-dark .menu-btn:active{background:rgba(200,200,200,.4)}
+.menu-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.3);backdrop-filter:blur(3px);z-index:200;display:none;align-items:flex-start;justify-content:flex-start;overflow-y:auto;overflow-x:hidden}
+.menu-panel{position:relative;margin:48px 16px 20px;max-width:300px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:24px;padding:2px 12px;box-shadow:0 12px 32px rgba(0,0,0,.2);border:1px solid var(--menu-border);background:var(--menu-bg)}
+.menu-panel.panel-disabled{pointer-events:auto}
+.menu-panel.panel-disabled .mode-section,.menu-panel.panel-disabled .reset-btn,.menu-panel.panel-disabled .close-menu,.menu-panel.panel-disabled .bg-preview-btn,.menu-panel.panel-disabled .logo-title-input,.menu-panel.panel-disabled .color-input,.menu-panel.panel-disabled .spacing-slider{pointer-events:none}
+.menu-panel.panel-disabled .reset-confirm-dialog{pointer-events:auto}
+.menu-panel.hidden-panel{opacity:0!important;visibility:visible!important;pointer-events:none!important;backdrop-filter:none!important;background:0 0!important;box-shadow:none!important;border-color:transparent!important}
+.slider-clone{position:fixed;top:calc(20px + env(safe-area-inset-top,0));left:50%;transform:translateX(-50%);z-index:250;background:var(--menu-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:20px;padding:10px 16px;box-shadow:0 4px 16px rgba(0,0,0,.2);border:1px solid var(--menu-border);display:flex;align-items:center;gap:12px;pointer-events:auto;white-space:nowrap;width:auto;max-width:calc(100% - 40px);animation:slideFromTop .2s}
+@keyframes slideFromTop{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.slider-clone .clone-label{font-size:11px;color:var(--text-secondary);white-space:nowrap}
+.slider-clone .clone-slider{flex:1;height:4px;-webkit-appearance:none;background:var(--border-color);border-radius:2px;outline:0;cursor:pointer;min-width:120px}
+.slider-clone .clone-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--slider-color,#3b82f6);cursor:pointer}
+.slider-clone .clone-value{font-size:11px;font-weight:600;color:var(--text);min-width:35px;text-align:center}
+.menu-title{display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:600;margin-top:6px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--menu-divider);color:var(--text)}
+.title-actions{display:flex;gap:6px}
+.title-btn{width:24px;height:24px;border-radius:50%;background:var(--btn-secondary-bg);border:1px solid var(--border-color);color:var(--text-secondary);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s}
+.title-btn:active{transform:scale(.9);background:var(--btn-active-bg)}
+.mode-section{margin-bottom:8px}
+.mode-label{font-size:12px;font-weight:500;margin-bottom:4px;color:var(--text-secondary);display:flex;align-items:center;gap:6px}
+.bg-preview-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.bg-preview-btn{background:var(--btn-secondary-bg);border:1px solid var(--border-color);border-radius:40px;padding:4px 12px;font-size:12px;color:var(--text);cursor:pointer;transition:all .15s;flex:1;text-align:center;white-space:nowrap;height:24px;line-height:16px;display:inline-flex;align-items:center;justify-content:center}
+.bg-preview-btn.active-cols{background:#3b82f6;color:#fff;border-color:transparent}
+html.berry-dark .bg-preview-btn.active-cols{background:#f97316}
+.bg-preview-btn:active{transform:scale(.96);background:var(--btn-active-bg)}
+.reset-btn{background:0 0;border:1px solid var(--border-color);width:100%;margin-top:6px;padding:4px 8px;border-radius:40px;font-size:12px;color:var(--text-secondary);cursor:pointer;text-align:center;height:24px;line-height:16px;display:inline-flex;align-items:center;justify-content:center}
+.reset-btn:active{transform:scale(.96);background:var(--btn-active-bg)}
+.close-menu{margin-top:8px;text-align:center;font-size:12px;color:var(--text-secondary);padding-top:6px;border-top:1px solid var(--menu-divider);cursor:pointer}
+.close-menu:active{opacity:.7}
+.inline-reset{width:24px;height:24px;min-width:24px;border-radius:50%;border:1px solid var(--border-color);background:var(--btn-secondary-bg);color:var(--text-secondary);font-size:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;padding:0;line-height:1}
+.inline-reset:active{transform:scale(.9);background:var(--btn-active-bg)}
+.icon-actions{display:flex;gap:8px;margin-top:6px}
+.bottom-spacing-control{display:flex;gap:8px;align-items:center;margin-top:4px}
+.spacing-value{font-size:12px;font-weight:600;color:var(--text);min-width:40px;text-align:center}
+.spacing-slider{flex:1;height:4px;-webkit-appearance:none;background:var(--border-color);border-radius:2px;outline:0;cursor:pointer}
+.spacing-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--slider-color,#3b82f6);cursor:pointer}
+.logo-settings{display:flex;flex-direction:column;gap:6px}
+.logo-title-row{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;width:100%}
+.logo-title-row input,.logo-title-row .color-input{flex:1;min-width:0;width:auto;padding:2px 8px;border-radius:20px;border:1px solid var(--border-color);background:var(--btn-secondary-bg);color:var(--text);font-size:12px;height:24px;line-height:18px}
+.logo-title-row .color-preview{width:28px;height:28px;border-radius:10px;border:1px solid var(--border-color);flex-shrink:0;background-color:#f00}
+.btn-row-two{display:flex;gap:8px;margin-top:4px}
+.btn-row-two .bg-preview-btn{flex:1}
+.dual-slider-row{display:flex;gap:6px;flex-wrap:nowrap;width:100%;align-items:flex-end}
+.slider-item{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.slider-item .slider-label{font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:2px}
+.slider-item .slider-control{display:flex;align-items:center;gap:8px;width:100%}
+.slider-item .slider-control input{flex:1;min-width:0}
+.slider-item .slider-control .value{font-size:12px;font-weight:600;color:var(--text);min-width:36px;text-align:right}
+.toggle-switch{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.toggle-label{font-size:12px;font-weight:500;color:var(--text-secondary)}
+.toggle-checkbox{position:relative;width:44px;height:18px;-webkit-appearance:none;appearance:none;background:var(--border-color);border-radius:18px;outline:0;cursor:pointer;transition:background .2s}
+.toggle-checkbox:checked{background:#3b82f6}
+.toggle-checkbox::before{content:'';position:absolute;width:14px;height:14px;border-radius:50%;top:2px;left:2px;background:#fff;transition:transform .2s}
+.toggle-checkbox:checked::before{transform:translateX(26px)}
+html.berry-dark .toggle-checkbox:checked{background:#f97316}
+.reset-confirm-dialog{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);width:80%;min-width:160px;max-width:240px;background:var(--menu-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:20px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.25);border:1px solid var(--menu-border);text-align:center;animation:fadeInUp .2s;z-index:10}
+@keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.confirm-dialog-text{font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px;line-height:1.4}
+.confirm-dialog-buttons{display:flex;gap:12px;justify-content:center}
+.confirm-dialog-buttons button{flex:1;padding:6px 0;border-radius:40px;font-size:12px;font-weight:500;border:0;background:var(--btn-secondary-bg);color:var(--text);cursor:pointer;transition:all .15s;border:1px solid var(--border-color)}
+.confirm-dialog-buttons button:active{transform:scale(.96);background:var(--btn-active-bg)}
+.confirm-dialog-buttons .confirm-reset-btn{background:#ff4d4d;color:#fff;border:0}
+.confirm-dialog-buttons .confirm-reset-btn:active{background:#e33e3e}
+html.berry-dark .confirm-dialog-buttons .confirm-reset-btn{background:#ff6b6b;color:#1a1a1a}
+html.berry-dark .confirm-dialog-buttons .confirm-reset-btn:active{background:#ff8a8a}
+/* Toast 通知 */
+#_berryToast{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;white-space:nowrap;z-index:9999;pointer-events:none;opacity:0;transition:opacity .3s}
+html.berry-dark #_berryToast{background:rgba(40,40,40,.9)}
+:root{--text-adaptive:#1a202c;--menu-icon-color:#4a5568;--bottom-spacing:30px;--logo-color:#f00;--logo-icon-size:80px;--logo-font-size:60px;--slider-color:#3b82f6;--text:#1f2937;--text-secondary:#4b5563;--icon-bg:rgba(255,255,255,.92);--add-icon-bg:rgba(245,245,245,.8);--add-icon-color:#6b7280;--add-border:#9ca3af;--menu-bg:rgba(255,255,255,.83);--menu-border:rgba(0,0,0,.12);--menu-divider:rgba(0,0,0,.1);--btn-secondary-bg:rgba(0,0,0,.05);--border-color:rgba(0,0,0,.12);--btn-active-bg:rgba(0,0,0,.1);--card-bg:rgba(255,255,255,.4);--card-shadow:0 4px 12px rgba(0,0,0,.08);--tag-bg:rgba(0,0,0,.05);--tag-active-bg:rgba(0,0,0,.1);--search-gap:20px;--icon-radius:15px;--bookmark-icon-size:54px;--bookmark-grid-cols:5;--bookmark-font-size:10px;--bookmark-item-gap:6px;--bookmark-grid-row-gap:2px}
+html.berry-dark{--text-adaptive:#f0f0f0;--menu-icon-color:#e2e8f0;--logo-color:#ff6b6b;--slider-color:#f97316;--text:#fff;--text-secondary:#cbd5e1;--icon-bg:rgba(55,65,81,.95);--add-icon-bg:rgba(55,65,81,.9);--add-icon-color:#cbd5e1;--add-border:#6b7280;--menu-bg:rgba(45,45,50,.75);--menu-border:rgba(255,255,255,.15);--menu-divider:rgba(255,255,255,.15);--btn-secondary-bg:rgba(255,255,255,.12);--border-color:rgba(255,255,255,.25);--btn-active-bg:rgba(255,255,255,.22);--card-bg:rgba(0,0,0,.5);--card-shadow:0 4px 12px rgba(0,0,0,.3);--tag-bg:rgba(80,80,90,.8);--tag-active-bg:rgba(120,120,130,.8)}
+html.berry-dark .spacing-slider,html.berry-dark .slider-clone .clone-slider{background:var(--border-color)}
+html.berry-dark .spacing-slider::-webkit-slider-thumb,html.berry-dark .slider-clone .clone-slider::-webkit-slider-thumb{background:var(--slider-color)}
+html.berry-dark .bg-preview-btn,html.berry-dark .reset-btn,html.berry-dark .inline-reset,html.berry-dark .logo-title-input,html.berry-dark .color-input{background:var(--btn-secondary-bg);border-color:rgba(255,255,255,.3);color:#fff}
+html.berry-dark .bg-preview-btn:active,html.berry-dark .reset-btn:active,html.berry-dark .inline-reset:active{background:var(--btn-active-bg)}
+html.berry-dark .logo-title-input:focus,html.berry-dark .color-input:focus{border-color:#ff6b6b;background:rgba(55,65,81,.9)}
+html.berry-dark .mode-label{color:#e2e8f0}
+html.berry-dark .menu-title{color:#fff;border-bottom-color:rgba(255,255,255,.2)}
+html.berry-dark .close-menu{color:#cbd5e1;border-top-color:rgba(255,255,255,.2)}
+html.berry-dark .spacing-value{color:var(--slider-color)}
+html.berry-dark .color-preview{border-color:rgba(255,255,255,.3)}
+html.berry-dark .slider-clone{background:rgba(45,45,50,.92);border-color:rgba(255,255,255,.25);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+html.berry-dark .slider-clone .clone-label{color:#e2e8f0}
+html.berry-dark .slider-clone .clone-value{color:var(--slider-color)}
+@media (max-width:380px){.bookmark-name{max-width:60px}.bookmarks{column-gap:6px}.logo{font-size:var(--logo-font-size,52px)}.engine-tag{padding:3px 10px;font-size:11px}}
+@media (max-width:320px){.bookmark-name{max-width:55px}.bookmarks{column-gap:4px}.logo{font-size:var(--logo-font-size,46px)}.engine-tag{padding:3px 8px;font-size:10px}}
+</style>
+</head>
+<body>
+<div class="bg-layer light-bg" id="lightBgLayer"></div>
+<div class="bg-layer dark-bg" id="darkBgLayer"></div>
+<div id="_berryToast"></div>
+<div class="menu-btn" id="menuBtn"><div class="menu-icon"><span></span><span></span><span></span></div></div>
+<div class="menu-overlay" id="menuOverlay">
+<div class="menu-panel" id="menuPanel">
+<div class="menu-title">
+  <span>🎨 自定义设置</span>
+  <div class="title-actions">
+    <button class="title-btn" id="backupSettingsBtn" title="备份设置">📤</button>
+    <button class="title-btn" id="restoreSettingsBtn" title="恢复设置">📥</button>
+  </div>
+</div>
+<div class="mode-section"><div class="toggle-switch"><span class="toggle-label">🔍 启用搜索框</span><input type="checkbox" id="searchToggle" class="toggle-checkbox"></div></div>
+<div class="mode-section" id="searchGapSection"><div class="mode-label">🔍 搜索框与书签间距 (0-400px)</div><div class="bottom-spacing-control"><span style=font-size:12px>紧凑</span><input type=range id=searchGapSlider class=spacing-slider min=0 max=400 step=2 value=20><span style=font-size:12px>宽松</span><span id=searchGapValue class=spacing-value>20px</span><button class=inline-reset id=resetSearchGapBtn title=重置>↺</button></div></div>
+<div class="mode-section"><div class="mode-label">📏 书签底部间距 (0-400px)</div><div class="bottom-spacing-control"><span style=font-size:12px>紧凑</span><input type=range id=bottomSpacingSlider class=spacing-slider min=0 max=400 step=2 value=30><span style=font-size:12px>宽松</span><span id=bottomSpacingValue class=spacing-value>30px</span><button class=inline-reset id=resetBottomSpacingBtn title=重置>↺</button></div></div>
+<div class="mode-section"><div class="mode-label">🔘 书签图标圆角 (0-90px)</div><div class="bottom-spacing-control"><span style=font-size:12px>方角</span><input type=range id=iconRadiusSlider class=spacing-slider min=0 max=90 step=1 value=15><span style=font-size:12px>圆角</span><span id=iconRadiusValue class=spacing-value>15px</span><button class=inline-reset id=resetIconRadiusBtn title=重置>↺</button></div></div>
+<div class="mode-section"><div class="dual-slider-row"><div class="slider-item"><div class="slider-label">书签图标</div><div class="slider-control"><input type=range id=bookmarkIconSizeSlider class=spacing-slider min=32 max=80 step=2 value=54><span id=bookmarkIconSizeValue class=value>54px</span></div></div><div class="slider-item"><div class="slider-label">书签文字</div><div class="slider-control"><input type=range id=bookmarkFontSizeSlider class=spacing-slider min=6 max=20 step=1 value=10><span id=bookmarkFontSizeValue class=value>10px</span></div></div><div style=flex-shrink:0;padding-bottom:1px><button class=inline-reset id=resetBookmarkSizesBtn title=重置>↺</button></div></div></div>
+<div class="mode-section"><div class="mode-label">📱 每行书签数量</div><div class="bg-preview-row"><div class="bg-preview-btn" id="bookmarkCols5Btn">5 列</div><div class="bg-preview-btn" id="bookmarkCols6Btn">6 列</div><button class=inline-reset id=resetColsBtn title=重置>↺</button></div></div>
+<div class="mode-section"><div class="mode-label">✏️ Logo 标题设置</div><div class="logo-settings"><div class="bottom-spacing-control" style=margin-top:0><span style=font-size:12px>小</span><input type=range id=logoFontSizeSlider class=spacing-slider min=5 max=400 step=2 value=60><span style=font-size:12px>大</span><span id=logoFontSizeValue class=spacing-value>60px</span><button class=inline-reset id=resetLogoFontSizeBtn title="重置字体大小">↺</button></div><div class="logo-title-row"><input type=text id=logoTitleInput class=logo-title-input placeholder=标题 maxlength=20><button class=inline-reset id=resetLogoTitleBtn title=重置标题>↺</button><input type=text id=logoColorInput class=color-input placeholder=颜色值 value=#ff0000><div class=color-preview id=logoColorPreview style=background-color:#ff0000></div><button class=inline-reset id=resetLogoColorBtn title=重置颜色>↺</button></div></div></div>
+<div class="mode-section"><div class="mode-label">🖼️ Logo 图标 (5-400px)</div><div class=icon-actions style="gap:4px;align-items:center;flex-wrap:nowrap;margin-top:6px;justify-content:space-between"><div class="bg-preview-btn" id=setLogoIconBtn style=flex-shrink:0;padding:4px 8px;font-size:11px>选择图片</div><button class=inline-reset id=resetLogoIconBtn title=重置图片>↺</button><span style=font-size:11px;flex-shrink:0>小</span><input type=range id=logoIconSizeSlider class=spacing-slider style=width:90px;flex-shrink:0 min=5 max=400 step=2 value=80><span style=font-size:11px;flex-shrink:0>大</span><span id=logoIconSizeValue class=spacing-value style=min-width:32px;font-size:11px;flex-shrink:0>80px</span><button class=inline-reset id=resetLogoIconSizeBtn title=重置大小>↺</button></div><div style=font-size:10px;color:var(--text-secondary);margin-top:4px>支持 JPG/PNG/WEBP</div></div>
+<div class="mode-section"><div class="mode-label">🌄 背景设置</div><div class=bg-preview-row style=flex-wrap:nowrap><div class="bg-preview-btn" id=setLightBgBtn style=flex:1;font-size:11px;padding:4px 6px>浅色背景图片</div><button class=inline-reset id=resetLightBgBtn title=重置浅色>↺</button><div class="bg-preview-btn" id=setDarkBgBtn style=flex:1;font-size:11px;padding:4px 6px>深色背景图片</div><button class=inline-reset id=resetDarkBgBtn title=重置深色>↺</button></div></div>
+<div class="reset-btn" id="resetAllBtn">重置全部</div>
+<div class="close-menu" id="closeMenuBtn">✕ 关闭</div>
+</div>
+</div>
+<div class="main-container">
+<div class="bookmarks-content" id="bookmarksContent">
+<div class="bookmarks-wrapper">
+<div class="logo-icon-container" id="logoIconContainer"></div>
+<div class="logo-container"><div class="logo" id="logoText"></div></div>
+<div class="search-section" id="searchSection"><div class="search-card"><input type=text id=searchInput class=search-input autocomplete=off placeholder=""><div class=engine-scroll-container id=engineScrollContainer><div class=engine-options id=engineOptions></div></div></div></div>
+<div class="bookmarks" id="bookmarks"></div>
+</div>
+</div>
+</div>
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 工具函数
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const $ = id => document.getElementById(id);
+const h = s => s == null ? '' : String(s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const fl = n => n ? (/[\u4e00-\u9fa5]/.test(n[0]) ? n[0] : n[0].toUpperCase()) : '📌';
+const sb = () => setTimeout(() => { const c = $('bookmarksContent'); if (c) c.scrollTop = c.scrollHeight; }, 50);
+const genId = () => 'bm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+const isDark = () => document.documentElement.classList.contains('berry-dark') ||
+  (matchMedia && matchMedia('(prefers-color-scheme:dark)').matches);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 存储层 HS — 优先使用 BerryBrowser 原生持久化存储（HomeStorage），
+//   降级到 localStorage。
+//
+//   路由策略（按值大小动态判断，解决无痕模式壁纸丢失问题）：
+//   - berry_bookmarks：始终 localStorage（书签由 ArkTS 注入，localStorage 仅作渲染缓存）
+//   - 其他 berry_* 键：
+//       值 < 50KB → HomeStorage（Preferences，原生持久化，正常/无痕模式共享）
+//       值 ≥ 50KB → localStorage（大图片 base64 超出 HomeStorage 64KB 硬上限的兜底）
+//   - get() 始终先读 HomeStorage，再读 localStorage 兜底（支持迁移旧数据）
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const HS = (() => {
+  const HS_LIMIT = 50 * 1024; // 50KB，低于 HomeStorage 64KB 硬上限留出余量
+  const BOOKMARKS = 'berry_bookmarks'; // 书签由 ArkTS 管理，始终走 localStorage
+  const bb = () => window.BerryBrowser;
+  const hasNative = () => { const b = bb(); return !!b && typeof b.homeStorageGet === 'function'; };
+
+  return {
+    get(key, def = '') {
+      // 书签：只读 localStorage
+      if (key === BOOKMARKS) {
+        const v = localStorage.getItem(key); return v !== null ? v : String(def);
+      }
+      // 优先读 HomeStorage（所有模式共享，无痕模式壁纸正常显示的关键）
+      if (hasNative()) {
+        const v = bb().homeStorageGet(key);
+        if (v !== '') return v;
+      }
+      // 兜底：localStorage（大图片 base64 / 降级路径历史数据）
+      const v = localStorage.getItem(key);
+      return v !== null ? v : String(def);
+    },
+    set(key, val) {
+      if (key === BOOKMARKS) { localStorage.setItem(key, String(val)); return; }
+      const s = String(val);
+      if (hasNative() && s.length < HS_LIMIT) {
+        bb().homeStorageSet(key, s);
+        localStorage.removeItem(key); // 清理可能存在的旧 localStorage 副本，避免 get() 读到过期值
+        return;
+      }
+      // 值过大（通常是本地上传的超大 base64 图片），降级到 localStorage
+      // 注意：localStorage 在无痕模式下隔离，此时壁纸无法在无痕模式下显示（已知限制）
+      if (hasNative()) bb().homeStorageRemove(key); // 清除 HomeStorage 中可能存在的旧值
+      localStorage.setItem(key, s);
+    },
+    remove(key) {
+      if (key === BOOKMARKS) { localStorage.removeItem(key); return; }
+      // 双重清除：HomeStorage 和 localStorage 都清，确保彻底
+      if (hasNative()) bb().homeStorageRemove(key);
+      localStorage.removeItem(key);
+    },
+    // 清空所有设置（不含书签，书签由 ArkTS 管理）
+    clearSettings() {
+      const b = bb();
+      if (b && typeof b.homeStorageClear === 'function') b.homeStorageClear();
+      // 同时清除 localStorage 中的所有 berry_* 设置（含大图片，但保留书签）
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('berry_') && k !== BOOKMARKS)
+        .forEach(k => localStorage.removeItem(k));
+    },
+    // 获取全部设置快照（供备份使用）
+    snapshot() {
+      const r = {};
+      const b = bb();
+      // 先读 HomeStorage（小值设置）
+      if (b && typeof b.homeStorageGetAll === 'function') {
+        try { Object.assign(r, JSON.parse(b.homeStorageGetAll())); } catch (_) {}
+      }
+      // 再读 localStorage（补充大图片等 HomeStorage 未覆盖的值，且不覆盖已有键）
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('berry_') && k !== BOOKMARKS && !(k in r)) {
+          r[k] = localStorage.getItem(k);
+        }
+      }
+      return r;
+    }
+  };
+})();
+
+// 兼容性简写（全局 ls/gs 对应 HS.get/set）
+const ls = (k, d = '') => HS.get(k, d);
+const gs = (k, v) => HS.set(k, v);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Toast 通知（替代 alert，不阻塞交互）
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let _toastTimer = null;
+const showToast = msg => {
+  const el = $('_berryToast');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.opacity = '1';
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.style.opacity = '0'; }, 2000);
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 书签状态（书签数据由 ArkTS 通过 window.setBookmarks 注入）
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let bookmarks = [];
+let _t = null, _tr = false, _si = null, _id = false;
+let _ce = null, _cs = null, _ht = null, _ck = false, _cu = null;
+
+const svBK = () => gs('berry_bookmarks', JSON.stringify(bookmarks));
+const ensIDs = a => { a.forEach(b => { if (!b.id) b.id = genId(); }); return a; };
+
+const loadBK = () => {
+  try {
+    const s = localStorage.getItem('berry_bookmarks');
+    if (s) {
+      const a = JSON.parse(s);
+      if (Array.isArray(a) && a.length) { bookmarks = ensIDs(a); return true; }
+    }
+  } catch (_) {}
+  return false;
+};
+
+const mergeBK = na => {
+  if (!Array.isArray(na)) return false;
+  if (!bookmarks.length) {
+    bookmarks = ensIDs(na.map(i => ({ ...i })));
+    svBK(); renderBK(); return true;
+  }
+  const iu = new Set(na.filter(i => i.url).map(i => i.url));
+  const im = new Map(na.filter(i => i.url).map(i => [i.url, i]));
+  const eu = new Set(bookmarks.filter(b => b.url).map(b => b.url));
+  const md = [];
+  for (const b of bookmarks) {
+    if (!b.url || iu.has(b.url)) md.push(iu.has(b.url) ? { ...b, ...im.get(b.url), id: b.id } : b);
+  }
+  na.forEach(i => {
+    if (i.url && !eu.has(i.url)) { const f = { ...i }; if (!f.id) f.id = genId(); md.push(f); }
+  });
+  bookmarks = md; svBK(); renderBK(); return true;
+};
+
+window.setBookmarks = json => {
+  try {
+    const a = typeof json === 'string' ? JSON.parse(json) : json;
+    if (Array.isArray(a)) mergeBK(a); else { bookmarks = []; renderBK(); }
+  } catch (_) { bookmarks = []; renderBK(); }
+};
+
+const renderBK = () => {
+  const c = $('bookmarks');
+  if (!c) return;
+  let html = '';
+  for (let i = 0; i < bookmarks.length; i++) {
+    const b = bookmarks[i];
+    const col = /^#[0-9A-F]{6}$/i.test(b.color || '') ? b.color : '#3b82f6';
+    const hc = b.customIcon?.trim(), hf = b.favicon?.trim();
+    const iS = hc || hf ? 'var(--icon-bg)' : col;
+    const iC = hc || hf ? 'inherit' : '#fff';
+    let iH;
+    if (hc) iH = `<img src="${h(b.customIcon)}" onerror="this.parentElement.style.background='${col}';this.parentElement.style.color='#fff';this.parentElement.textContent='${fl(b.name)}';">`;
+    else if (hf) iH = `<img src="${h(b.favicon)}" onerror="this.parentElement.style.background='${col}';this.parentElement.style.color='#fff';this.parentElement.textContent='${fl(b.name)}';">`;
+    else iH = h(fl(b.name));
+    html += `<div class="bookmark-item" data-id="${h(b.id)}" data-index="${i}" ontouchstart="onBkTS(event,${i})" ontouchend="onBkTE(event,${i})" ontouchmove="onBkTC()" ontouchcancel="onBkTC()" onclick="onBkC(event,${i})"><div class="bookmark-icon" style="background:${iS};color:${iC}">${iH}</div><span class="bookmark-name">${h(b.name || '书签')}</span></div>`;
+  }
+  html += '<div class="bookmark-item bookmark-add" onclick="onAddC()"><div class="bookmark-icon">+</div><span class="bookmark-name">添加</span></div>';
+  c.innerHTML = html;
+  initSortable();
+  sb();
+};
+
+const initSortable = () => {
+  const g = $('bookmarks');
+  if (!g || typeof Sortable === 'undefined') return; // SortableJS 未加载时优雅降级
+  if (_si) _si.destroy();
+  _si = new Sortable(g, {
+    animation: 200,
+    draggable: '.bookmark-item:not(.bookmark-add)',
+    ghostClass: 'sortable-ghost',
+    dragClass: 'sortable-drag',
+    handle: '.bookmark-item',
+    filter: '.bookmark-add',
+    onStart: () => { if (_t) clearTimeout(_t); _id = true; _tr = false; },
+    onEnd: () => {
+      _id = false;
+      const items = document.querySelectorAll('#bookmarks .bookmark-item:not(.bookmark-add)');
+      const no = [];
+      items.forEach(item => {
+        const id = item.dataset.id;
+        if (id) { const f = bookmarks.find(b => b.id === id); if (f) no.push(f); }
+      });
+      if (no.length === bookmarks.length) {
+        bookmarks = no; svBK();
+        items.forEach((item, idx) => {
+          item.dataset.index = idx;
+          item.setAttribute('onclick', `onBkC(event,${idx})`);
+        });
+      } else renderBK();
+    }
+  });
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 书签交互事件
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+window.onBkTS = (e, i) => {
+  if (_id) return; _tr = false;
+  _t = setTimeout(() => { if (!_id) location.href = 'berry://edit-bookmark?index=' + i; _tr = true; }, 500);
+};
+window.onBkTE = (e, i) => { if (!_id) clearTimeout(_t); };
+window.onBkTC = () => { if (!_id) clearTimeout(_t); };
+window.onBkC = (e, i) => {
+  if (_id || _tr) { e.preventDefault(); return; }
+  if (i >= 0 && i < bookmarks.length) location.href = 'berry://navigate?url=' + encodeURIComponent(bookmarks[i].url);
+};
+window.onAddC = () => { if (!_id) location.href = 'berry://add-bookmark'; };
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 搜索引擎
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const ENG = [
+  { k: 'bing',       n: '必应',       u: 'https://www.bing.com/search?q=' },
+  { k: 'baidu',      n: '百度',       u: 'https://www.baidu.com/s?wd=' },
+  { k: 'google',     n: '谷歌',       u: 'https://www.google.com/search?q=' },
+  { k: '360',        n: '360搜索',    u: 'https://www.so.com/s?q=' },
+  { k: 'sogou',      n: '搜狗',       u: 'https://www.sogou.com/web?query=' },
+  { k: 'yandex',     n: 'Yandex',     u: 'https://yandex.com/search/?text=' },
+  { k: 'duckduckgo', n: 'DuckDuckGo', u: 'https://duckduckgo.com/?q=' }
+];
+let _eng = ls('berry_engine', 'bing');
+
+const buildEngTags = () => {
+  const c = $('engineOptions');
+  if (!c) return;
+  c.innerHTML = '';
+  ENG.forEach(e => {
+    const t = document.createElement('div');
+    t.className = 'engine-tag' + (_eng === e.k ? ' active' : '');
+    t.textContent = e.n;
+    t.dataset.k = e.k;
+    t.addEventListener('click', ev => {
+      ev.stopPropagation();
+      if (ls('berry_search_enabled', 'true') !== 'true') return;
+      _eng = e.k; gs('berry_engine', e.k);
+      document.querySelectorAll('.engine-tag').forEach(t2 => t2.classList.toggle('active', t2.dataset.k === e.k));
+      $('searchInput').focus();
+    });
+    ['mousedown', 'touchstart'].forEach(ev => t.addEventListener(ev, () => { _ck = true; }));
+    ['mouseup', 'touchend'].forEach(ev => t.addEventListener(ev, () => setTimeout(() => { _ck = false; }, 50)));
+    c.appendChild(t);
+  });
+};
+
+const showEP = () => { if (_ht) clearTimeout(_ht); $('engineScrollContainer').classList.add('show'); };
+const hideEP = () => $('engineScrollContainer').classList.remove('show');
+
+const doSearch = () => {
+  if (ls('berry_search_enabled', 'true') !== 'true') return;
+  const kw = $('searchInput').value.trim();
+  if (!kw) return;
+  const eng = ENG.find(e => e.k === _eng);
+  if (eng) location.href = 'berry://navigate?url=' + encodeURIComponent(eng.u + encodeURIComponent(kw));
+  $('searchInput').blur();
+};
+
+const initSearch = () => {
+  const inp = $('searchInput');
+  buildEngTags();
+  inp.addEventListener('focus', () => { if (ls('berry_search_enabled', 'true') === 'true') showEP(); });
+  inp.addEventListener('blur', () => { _ht = setTimeout(() => { if (!_ck) hideEP(); }, 150); });
+  inp.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } });
+  document.addEventListener('click', e => {
+    const card = document.querySelector('.search-card');
+    if (card && !card.contains(e.target)) { if (_ht) clearTimeout(_ht); hideEP(); }
+  });
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 设置更新函数
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const updateBg = () => {
+  const d = isDark();
+  const setLayer = (id, img) => {
+    const e = $(id);
+    e.style.display = id === 'darkBgLayer' ? (d ? 'block' : 'none') : (d ? 'none' : 'block');
+    e.style.backgroundImage = img ? "url('" + img + "')" : 'none';
+    e.style.backgroundColor = img ? 'transparent' : (id === 'darkBgLayer' ? '#000' : '#fff');
+  };
+  setLayer('lightBgLayer', ls('berry_light_bg', ''));
+  setLayer('darkBgLayer', ls('berry_dark_bg', ''));
+};
+
+const syncClone = (id, v, suf) => {
+  if (_ce && _cs && _cs.id === id) {
+    const c = _ce.querySelector('.clone-slider'), x = _ce.querySelector('.clone-value');
+    if (c) c.value = v; if (x) x.textContent = v + suf;
+  }
+};
+
+const updVar = (css, sid, suf, v) => {
+  document.documentElement.style.setProperty(css, v + suf);
+  const el = $(sid); if (el) el.value = v;
+  const ve = $(sid.replace('Slider', 'Value')); if (ve) ve.textContent = v + suf;
+  syncClone(sid, v, suf);
+};
+
+const updBS  = v => { gs('berry_bottom_spacing',    v); updVar('--bottom-spacing',    'bottomSpacingSlider',    'px', v); };
+const updSG  = v => { gs('berry_search_gap',         v); updVar('--search-gap',         'searchGapSlider',         'px', v); };
+const updIR  = v => { gs('berry_icon_radius',        v); updVar('--icon-radius',        'iconRadiusSlider',        'px', v); };
+const updLFS = v => { gs('berry_logo_font_size',     v); updVar('--logo-font-size',     'logoFontSizeSlider',     'px', v); };
+const updLIS = v => { gs('berry_logo_icon_size',     v); updVar('--logo-icon-size',     'logoIconSizeSlider',     'px', v); updLI(); };
+const updBFS = v => { gs('berry_bookmark_font_size', v); updVar('--bookmark-font-size', 'bookmarkFontSizeSlider', 'px', v); };
+const updBIS = v => {
+  gs('berry_bookmark_icon_size', v);
+  updVar('--bookmark-icon-size', 'bookmarkIconSizeSlider', 'px', v);
+  const f = v / 54;
+  document.documentElement.style.setProperty('--bookmark-item-gap',    (6 * f) + 'px');
+  document.documentElement.style.setProperty('--bookmark-grid-row-gap', (8 * f) + 'px');
+};
+const updSE = en => {
+  gs('berry_search_enabled', en);
+  const s = $('searchSection'), g = $('searchGapSection');
+  if (s) s.classList.toggle('hidden', !en);
+  if (g) g.style.display = en ? 'block' : 'none';
+  if (!en) $('searchInput').blur();
+  sb();
+};
+const updBC = c => {
+  gs('berry_bookmark_cols', c);
+  document.documentElement.style.setProperty('--bookmark-grid-cols', c);
+  $('bookmarkCols5Btn').classList.toggle('active-cols', c === '5');
+  $('bookmarkCols6Btn').classList.toggle('active-cols', c === '6');
+};
+const updLT = t => { gs('berry_logo_title', t); $('logoText').textContent = t; $('logoTitleInput').value = t; };
+const updLC = c => {
+  gs('berry_logo_color', c);
+  document.documentElement.style.setProperty('--logo-color', c);
+  $('logoColorInput').value = c;
+  $('logoColorPreview').style.backgroundColor = c;
+};
+const updLI = () => {
+  const c = $('logoIconContainer');
+  if (!c) return;
+  const cu = ls('berry_custom_logo', '');
+  c.innerHTML = (cu && cu !== '__SVG_DEFAULT__')
+    ? '<img class=custom-logo-icon src="' + h(cu) + '" alt=logo>'
+    : '';
+};
+
+const setCLI = img => { gs('berry_custom_logo', img); updLI(); };
+const rstCLI = () => { HS.remove('berry_custom_logo'); updLI(); };
+const setLBg = img => { gs('berry_light_bg', img); updateBg(); };
+const setDBg = img => { gs('berry_dark_bg',  img); updateBg(); };
+const rstLBg = () => { HS.remove('berry_light_bg'); updateBg(); };
+const rstDBg = () => { HS.remove('berry_dark_bg');  updateBg(); };
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 默认值 & 重置
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const DEFAULTS = {
+  bottomSpacing: 30, searchGap: 20, iconRadius: 15, searchEnabled: true,
+  logoTitle: '', logoColor: '#ff0000', logoFontSize: 60, logoIconSize: 80,
+  bookmarkIconSize: 54, bookmarkFontSize: 10, bookmarkCols: '5'
+};
+
+const resetAll = () => {
+  updBS(DEFAULTS.bottomSpacing);   updSG(DEFAULTS.searchGap);
+  updIR(DEFAULTS.iconRadius);      updSE(DEFAULTS.searchEnabled);
+  updLT(DEFAULTS.logoTitle);       updLC(DEFAULTS.logoColor);
+  updLFS(DEFAULTS.logoFontSize);   updLIS(DEFAULTS.logoIconSize);
+  rstLBg(); rstDBg(); rstCLI();
+  updBIS(DEFAULTS.bookmarkIconSize); updBFS(DEFAULTS.bookmarkFontSize);
+  updBC(DEFAULTS.bookmarkCols);
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 菜单 & 滑块克隆
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const rmClone = () => {
+  if (_ce) {
+    if (_cs) _cs.el.removeEventListener('input', _cs.fn);
+    _ce.remove(); _ce = null; _cs = null;
+  }
+};
+const hideMP = () => { const p = $('menuPanel'); if (p && !p.classList.contains('hidden-panel')) p.classList.add('hidden-panel'); };
+const rstMP = () => { const p = $('menuPanel'); if (p && p.classList.contains('hidden-panel')) p.classList.remove('hidden-panel'); rmClone(); };
+
+const mkClone = (sl, lb, sid) => {
+  rmClone();
+  const cl = document.createElement('div');
+  cl.className = 'slider-clone';
+  const v = sl.value;
+  cl.innerHTML = `<span class="clone-label">${lb}</span><input type="range" class="clone-slider" min="${sl.min}" max="${sl.max}" step="${sl.step}" value="${v}"><span class="clone-value">${v}px</span>`;
+  document.body.appendChild(cl);
+  const cs = cl.querySelector('.clone-slider'), cv = cl.querySelector('.clone-value');
+  const onCl = e => { const v2 = e.target.value; cv.textContent = v2 + 'px'; sl.value = v2; sl.dispatchEvent(new Event('input', { bubbles: true })); };
+  const onOr = () => { if (_ce === cl) { cs.value = sl.value; cv.textContent = sl.value + 'px'; } };
+  cs.addEventListener('input', onCl);
+  sl.addEventListener('input', onOr);
+  _ce = cl; _cs = { id: sid, el: sl, fn: onOr };
+};
+
+const setupSC = (sl, lb, sid) => {
+  if (!sl) return;
+  const sd = e => { e.stopPropagation(); hideMP(); mkClone(sl, lb, sid); };
+  const ed = () => setTimeout(rstMP, 50);
+  sl.addEventListener('mousedown', sd);
+  sl.addEventListener('touchstart', sd, { passive: true });
+  sl.addEventListener('mouseup', ed);
+  sl.addEventListener('touchend', ed);
+  sl.addEventListener('touchcancel', ed);
+};
+
+const rmDia = () => {
+  if (_cu) { _cu.remove(); _cu = null; }
+  const p = $('menuPanel'); if (p) p.classList.remove('panel-disabled');
+};
+const showDia = oc => {
+  rmDia();
+  const pn = $('menuPanel');
+  if (!pn) return;
+  pn.classList.add('panel-disabled');
+  const d = document.createElement('div');
+  d.className = 'reset-confirm-dialog';
+  d.innerHTML = '<div class="confirm-dialog-text">确定重置全部设置吗？</div><div class="confirm-dialog-buttons"><button class="cancel-reset-btn">取消</button><button class="confirm-reset-btn">重置</button></div>';
+  pn.appendChild(d); _cu = d;
+  d.querySelector('.cancel-reset-btn').addEventListener('click', e => { e.stopPropagation(); rmDia(); });
+  d.querySelector('.confirm-reset-btn').addEventListener('click', e => { e.stopPropagation(); if (oc) oc(); rmDia(); });
+  d.addEventListener('click', e => e.stopPropagation());
+  d.addEventListener('touchstart', e => e.stopPropagation());
+};
+
+const selImg = cb => {
+  const i = document.createElement('input');
+  i.type = 'file';
+  i.accept = 'image/jpeg,image/png,image/webp';
+  i.onchange = e => {
+    const f = e.target.files[0];
+    if (f) { const r = new FileReader(); r.onload = ev => cb(ev.target.result); r.readAsDataURL(f); }
+  };
+  i.click();
+};
+
+const initMenu = () => {
+  const ov = $('menuOverlay');
+  const cp = () => { ov.style.display = 'none'; rstMP(); rmDia(); };
+  $('menuBtn').onclick = () => { ov.style.display = 'flex'; };
+  $('closeMenuBtn').onclick = cp;
+  ov.onclick = e => { if (e.target === ov) cp(); };
+
+  [
+    { id: 'bottomSpacingSlider',    lb: '📏 书签底部间距',  fn: v => updBS(parseInt(v))  },
+    { id: 'searchGapSlider',        lb: '🔍 搜索框间距',    fn: v => updSG(parseInt(v))  },
+    { id: 'iconRadiusSlider',       lb: '🔘 图标圆角',      fn: v => updIR(parseInt(v))  },
+    { id: 'bookmarkIconSizeSlider', lb: '📦 书签图标大小',  fn: v => updBIS(parseInt(v)) },
+    { id: 'bookmarkFontSizeSlider', lb: '🔤 书签文字大小',  fn: v => updBFS(parseInt(v)) },
+    { id: 'logoFontSizeSlider',     lb: '🔤 字体大小',      fn: v => updLFS(parseInt(v)) },
+    { id: 'logoIconSizeSlider',     lb: '🖼️ 图标大小',      fn: v => updLIS(parseInt(v)) }
+  ].forEach(s => {
+    const el = $(s.id);
+    setupSC(el, s.lb, s.id);
+    el.oninput = e => s.fn(e.target.value);
+  });
+
+  $('logoTitleInput').oninput = e => updLT(e.target.value);
+  $('logoColorInput').oninput = e => updLC(e.target.value);
+  $('bookmarkCols5Btn').onclick = () => { updBC('5'); cp(); };
+  $('bookmarkCols6Btn').onclick = () => { updBC('6'); cp(); };
+
+  [
+    { id: 'resetLogoTitleBtn',    fn: () => updLT(DEFAULTS.logoTitle)                          },
+    { id: 'resetLogoColorBtn',    fn: () => updLC(DEFAULTS.logoColor)                          },
+    { id: 'resetLogoFontSizeBtn', fn: () => updLFS(DEFAULTS.logoFontSize)                      },
+    { id: 'resetSearchGapBtn',    fn: () => updSG(DEFAULTS.searchGap)                          },
+    { id: 'resetBottomSpacingBtn',fn: () => updBS(DEFAULTS.bottomSpacing)                      },
+    { id: 'resetIconRadiusBtn',   fn: () => updIR(DEFAULTS.iconRadius)                         },
+    { id: 'resetColsBtn',         fn: () => updBC(DEFAULTS.bookmarkCols)                       },
+    { id: 'resetBookmarkSizesBtn',fn: () => { updBIS(DEFAULTS.bookmarkIconSize); updBFS(DEFAULTS.bookmarkFontSize); } },
+    { id: 'resetLogoIconBtn',     fn: () => rstCLI()                                           },
+    { id: 'resetLogoIconSizeBtn', fn: () => updLIS(DEFAULTS.logoIconSize)                      },
+    { id: 'resetLightBgBtn',      fn: () => rstLBg()                                           },
+    { id: 'resetDarkBgBtn',       fn: () => rstDBg()                                           }
+  ].forEach(b => { $(b.id).onclick = b.fn; });
+
+  $('setLogoIconBtn').onclick  = () => selImg(img => { setCLI(img); cp(); });
+  $('setLightBgBtn').onclick   = () => selImg(img => { setLBg(img); cp(); });
+  $('setDarkBgBtn').onclick    = () => selImg(img => { setDBg(img); cp(); });
+  $('resetAllBtn').onclick = e => { e.stopPropagation(); showDia(() => { resetAll(); cp(); }); };
+
+  const st = $('searchToggle');
+  if (st) {
+    st.checked = ls('berry_search_enabled', 'true') === 'true';
+    st.addEventListener('change', e => { updSE(e.target.checked); cp(); });
+  }
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 备份 / 恢复
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// 备份：读取全部 berry_* 设置（含图片）导出为 JSON 文件
+const backupSettings = () => {
+  try {
+    const data = HS.snapshot();
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'berry_home_backup.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // 延迟释放 URL，确保下载请求已发出
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    showToast('备份文件已导出');
+  } catch (e) {
+    showToast('备份失败: ' + e.message);
+  }
+};
+
+// 恢复：读取 JSON 文件，清除现有设置后逐条写入
+const restoreSettings = () => {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.json,application/json';
+  inp.onchange = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (typeof data !== 'object' || data === null) throw new Error('格式无效');
+
+        // 清除现有设置（HS.clearSettings 已覆盖 HomeStorage + localStorage 的所有 berry_* 设置）
+        HS.clearSettings();
+
+        // 逐条写入恢复的数据
+        Object.entries(data).forEach(([k, v]) => {
+          if (!k.startsWith('berry_')) return;
+          if (k === 'berry_bookmarks') return; // 书签由 ArkTS 管理，跳过
+          gs(k, String(v)); // HS.set 会自动路由大值到 localStorage
+        });
+
+        showToast('设置已恢复，即将刷新');
+        setTimeout(() => location.reload(), 1200);
+      } catch (ex) {
+        showToast('备份文件无效: ' + (ex.message || ''));
+      }
+    };
+    r.readAsText(f);
+  };
+  inp.click();
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 主题跟随系统深色/浅色
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const syncThemeWithSystem = () => {
+  document.documentElement.classList.toggle('berry-dark', matchMedia('(prefers-color-scheme: dark)').matches);
+  updateBg();
+};
+
+const observeTheme = () => {
+  syncThemeWithSystem();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncThemeWithSystem);
+  new MutationObserver(() => updateBg())
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 默认书签
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const DEFBK = [
+  { name: '百度',  url: 'https://www.baidu.com',     color: '#1E88E5' },
+  { name: '谷歌',  url: 'https://www.google.com',    color: '#34A853' },
+  { name: 'GitHub', url: 'https://github.com',       color: '#181717' },
+  { name: '知乎',  url: 'https://www.zhihu.com',     color: '#0084FF' },
+  { name: 'B站',   url: 'https://www.bilibili.com',  color: '#FB7299' },
+  { name: '淘宝',  url: 'https://www.taobao.com',    color: '#FF6600' },
+  { name: '京东',  url: 'https://www.jd.com',        color: '#E4393C' },
+  { name: '网易',  url: 'https://www.163.com',       color: '#D9232C' },
+  { name: '腾讯',  url: 'https://www.qq.com',        color: '#12B7F5' },
+  { name: '微博',  url: 'https://www.weibo.com',     color: '#E6162D' }
+];
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 初始化
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const init = () => {
+  initMenu();
+  observeTheme();
+  updLI();
+
+  if (!loadBK()) { bookmarks = ensIDs(DEFBK.map(i => ({ ...i }))); svBK(); }
+  renderBK();
+
+  updBS(parseInt(ls('berry_bottom_spacing',    '30')));
+  updSG(parseInt(ls('berry_search_gap',         '20')));
+  updIR(parseInt(ls('berry_icon_radius',        '15')));
+  updSE(ls('berry_search_enabled', 'true') === 'true');
+  updLT(ls('berry_logo_title',  ''));
+  updLC(ls('berry_logo_color',  '#ff0000'));
+  updLFS(parseInt(ls('berry_logo_font_size',     '60')));
+  updLIS(parseInt(ls('berry_logo_icon_size',     '80')));
+  updBIS(parseInt(ls('berry_bookmark_icon_size', '54')));
+  updBFS(parseInt(ls('berry_bookmark_font_size', '10')));
+  updBC(ls('berry_bookmark_cols', '5'));
+
+  initSearch();
+  addEventListener('resize', sb);
+
+  $('backupSettingsBtn').addEventListener('click',  backupSettings);
+  $('restoreSettingsBtn').addEventListener('click', restoreSettings);
+};
+
+document.addEventListener('contextmenu', e => e.preventDefault());
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>灵境搜索 · 沉浸光感新标签页</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none; /* 避免拖动时误选，但输入框可编辑 */
+        }
+
+        body {
+            min-height: 100vh;
+            background: #0a0f1e;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', 'Roboto', sans-serif;
+            overflow-x: hidden;
+            position: relative;
+            transition: background-image 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+
+        /* 动态背景层 (支持图片/视频/渐变) */
+        .bg-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            transition: all 0.5s ease;
+        }
+
+        .bg-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.75) contrast(1.05);
+            transition: filter 0.3s;
+        }
+
+        /* 光感叠加层 — 营造沉浸光束, 动态光晕 */
+        .light-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            background: radial-gradient(circle at 50% 30%, rgba(255, 245, 200, 0.12) 0%, rgba(0, 0, 0, 0.25) 80%);
+            backdrop-filter: blur(2px);
+        }
+
+        /* 动态流光粒子 (高级光感) */
+        .ambient-glow {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: -1;
+            background: repeating-linear-gradient(45deg, rgba(255,255,210,0.02) 0px, rgba(255,255,210,0.02) 2px, transparent 2px, transparent 8px);
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem 3rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+
+        /* 顶栏控制区: 背景设置 + 主题 */
+        .top-tools {
+            position: fixed;
+            top: 20px;
+            right: 24px;
+            display: flex;
+            gap: 14px;
+            z-index: 30;
+            background: rgba(15, 25, 35, 0.5);
+            backdrop-filter: blur(12px);
+            padding: 8px 18px;
+            border-radius: 60px;
+            border: 1px solid rgba(255,255,210,0.25);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .tool-btn {
+            background: rgba(255,255,245,0.15);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 500;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+
+        .tool-btn:hover {
+            background: rgba(255,210,140,0.4);
+            transform: scale(1.02);
+            box-shadow: 0 0 12px rgba(255,200,100,0.5);
+        }
+
+        /* 搜索核心区 */
+        .search-hero {
+            width: 100%;
+            max-width: 780px;
+            margin: 2rem 0 2.5rem;
+            animation: fadeSlideUp 0.6s ease-out;
+        }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo-glow {
+            font-size: 4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFFFFF, #FFE6B0, #C0E0FF);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 15px rgba(255,215,120,0.3);
+            letter-spacing: -1px;
+        }
+
+        .sub {
+            color: rgba(255,250,220,0.8);
+            margin-top: 6px;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .search-box {
+            background: rgba(20, 30, 45, 0.55);
+            backdrop-filter: blur(16px);
+            border-radius: 80px;
+            border: 1px solid rgba(255,235,170,0.5);
+            padding: 6px 6px 6px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2), 0 0 0 0 rgba(255,210,90,0);
+        }
+
+        .search-box:focus-within {
+            border-color: rgba(255,210,100,0.9);
+            box-shadow: 0 8px 28px rgba(0,0,0,0.3), 0 0 0 3px rgba(255,200,80,0.3);
+            transform: scale(1.01);
+        }
+
+        .search-icon {
+            color: #ffdd99;
+            font-size: 1.4rem;
+        }
+
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            font-size: 1.2rem;
+            padding: 16px 0;
+            color: white;
+            outline: none;
+            font-weight: 500;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255,245,200,0.6);
+            font-weight: 400;
+        }
+
+        .search-btn {
+            background: linear-gradient(105deg, #ffb347, #ff8c2e);
+            border: none;
+            padding: 10px 28px;
+            border-radius: 60px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .search-btn:hover {
+            background: linear-gradient(105deg, #ffa035, #ff7a1c);
+            transform: scale(0.97);
+            box-shadow: 0 5px 12px rgba(0,0,0,0.4);
+        }
+
+        /* 常用网站区 (可添加/删除) */
+        .shortcuts-section {
+            width: 100%;
+            max-width: 1100px;
+            margin: 2rem 0 1rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 1.2rem;
+            flex-wrap: wrap;
+            gap: 12px;
+            color: #fff6e5;
+            font-weight: 500;
+            backdrop-filter: blur(4px);
+            padding: 0 8px;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            background: rgba(0,0,0,0.3);
+            padding: 4px 14px;
+            border-radius: 30px;
+            backdrop-filter: blur(8px);
+        }
+
+        .add-site-btn {
+            background: rgba(255,215,140,0.2);
+            border: 1px solid rgba(255,220,130,0.5);
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            color: #ffecb3;
+            transition: 0.2s;
+        }
+
+        .add-site-btn:hover {
+            background: rgba(255,180,70,0.6);
+            color: white;
+        }
+
+        .shortcuts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 140px));
+            gap: 20px;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .site-card {
+            background: rgba(20, 28, 40, 0.6);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 14px 8px;
+            text-align: center;
+            transition: all 0.25s ease;
+            cursor: pointer;
+            border: 1px solid rgba(255,235,180,0.3);
+            position: relative;
+            backdrop-filter: blur(12px);
+        }
+
+        .site-card:hover {
+            transform: translateY(-6px);
+            background: rgba(40, 55, 80, 0.75);
+            border-color: rgba(255,210,100,0.8);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.3), 0 0 12px rgba(255,200,100,0.3);
+        }
+
+        .site-favicon {
+            font-size: 2.6rem;
+            margin-bottom: 8px;
+            display: inline-block;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+
+        .site-name {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #f0f3fa;
+            word-break: keep-all;
+            white-space: nowrap;
+            overflow-x: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .delete-site {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: rgba(0,0,0,0.6);
+            border-radius: 30px;
+            width: 22px;
+            height: 22px;
+            font-size: 14px;
+            line-height: 20px;
+            text-align: center;
+            color: #ffbb88;
+            cursor: pointer;
+            opacity: 0;
+            transition: 0.1s;
+            font-weight: bold;
+            backdrop-filter: blur(4px);
+        }
+
+        .site-card:hover .delete-site {
+            opacity: 1;
+        }
+
+        .delete-site:hover {
+            background: #ff5e5e;
+            color: white;
+        }
+
+        /* 沉浸光感装饰 */
+        .light-beam {
+            position: fixed;
+            top: -20%;
+            left: -20%;
+            width: 140%;
+            height: 140%;
+            background: radial-gradient(ellipse at 40% 30%, rgba(255,210,150,0.08), transparent 70%);
+            pointer-events: none;
+            z-index: -1;
+            animation: slowMove 20s infinite alternate;
+        }
+
+        @keyframes slowMove {
+            0% { transform: translate(0%, 0%) scale(1); opacity: 0.5;}
+            100% { transform: translate(4%, 3%) scale(1.08); opacity: 0.8;}
+        }
+
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 背景上传隐藏input */
+        .bg-input {
+            display: none;
+        }
+
+        /* 响应式 */
+        @media (max-width: 680px) {
+            .container {
+                padding: 1rem;
+            }
+            .search-box {
+                padding: 4px 4px 4px 18px;
+            }
+            .search-input {
+                font-size: 1rem;
+                padding: 12px 0;
+            }
+            .search-btn {
+                padding: 8px 18px;
+            }
+            .shortcuts-grid {
+                grid-template-columns: repeat(auto-fill, minmax(90px, 100px));
+                gap: 12px;
+            }
+            .tool-btn {
+                padding: 5px 12px;
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 沉浸光效层 -->
+    <div class="bg-layer" id="bgLayer">
+        <img class="bg-image" id="bgImage" src="https://picsum.photos/id/104/1920/1080" alt="背景">
+    </div>
+    <div class="light-overlay"></div>
+    <div class="ambient-glow"></div>
+    <div class="light-beam"></div>
+
+    <!-- 顶部工具栏 -->
+    <div class="top-tools">
+        <button class="tool-btn" id="uploadBgBtn">✨ 更换背景</button>
+        <button class="tool-btn" id="resetBgBtn">🌌 重置光感背景</button>
+    </div>
+
+    <div class="container">
+        <!-- 主搜索区域 -->
+        <div class="search-hero">
+            <div class="logo-area">
+                <div class="logo-glow">灵境·搜韵</div>
+                <div class="sub">沉浸光感 · 极简随行</div>
+            </div>
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="searchInput" placeholder="探索知识海洋, 输入关键词..." autocomplete="off">
+                <button class="search-btn" id="searchBtn">百度一下</button>
+            </div>
+        </div>
+
+        <!-- 常用网站区域 -->
+        <div class="shortcuts-section">
+            <div class="section-header">
+                <span class="section-title">⭐ 常用星系 · 快捷入口</span>
+                <button class="add-site-btn" id="addSiteBtn">+ 添加常用网站</button>
+            </div>
+            <div class="shortcuts-grid" id="shortcutsGrid">
+                <!-- 预置几个常用网站 -->
+                <!-- 动态js渲染 -->
+            </div>
+            <div style="text-align: center; margin-top: 20px; font-size: 0.7rem; color: rgba(255,245,200,0.6); backdrop-filter: blur(4px);">
+                💡 提示: 悬停卡片可删除·点击卡片直接跳转
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="bgFileInput" accept="image/*" class="bg-input">
+
+    <script>
+        // ---------- 搜索引擎 百度 ----------
+        const SEARCH_ENGINE = "https://www.baidu.com/s?wd=";
+        
+        // 获取元素
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const shortcutsGrid = document.getElementById('shortcutsGrid');
+        const addSiteBtn = document.getElementById('addSiteBtn');
+        const uploadBgBtn = document.getElementById('uploadBgBtn');
+        const resetBgBtn = document.getElementById('resetBgBtn');
+        const bgFileInput = document.getElementById('bgFileInput');
+        const bgImage = document.getElementById('bgImage');
+
+        // ---------- 常用网站存储 key ----------
+        const STORAGE_KEY = 'immersive_shortcuts';
+
+        // 默认网站数据 (名称, url, 图标emoji)
+        const defaultSites = [
+            { name: "百度", url: "https://www.baidu.com", icon: "🌐" },
+            { name: "GitHub", url: "https://github.com", icon: "🐙" },
+            { name: "知乎", url: "https://www.zhihu.com", icon: "💡" },
+            { name: "B站", url: "https://www.bilibili.com", icon: "🎬" },
+            { name: "抖音", url: "https://www.douyin.com", icon: "📱" },
+            { name: "淘宝", url: "https://www.taobao.com", icon: "🛒" }
+        ];
+
+        // 当前网站列表
+        let sitesList = [];
+
+        // 加载存储中的网站
+        function loadSites() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                try {
+                    sitesList = JSON.parse(stored);
+                    if (!Array.isArray(sitesList) || sitesList.length === 0) {
+                        sitesList = [...defaultSites];
+                    }
+                } catch(e) { sitesList = [...defaultSites]; }
+            } else {
+                sitesList = [...defaultSites];
+            }
+            renderShortcuts();
+        }
+
+        // 保存网站列表
+        function saveSites() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(sitesList));
+        }
+
+        // 渲染快捷方式网格
+        function renderShortcuts() {
+            if (!shortcutsGrid) return;
+            if (sitesList.length === 0) {
+                shortcutsGrid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:rgba(255,245,200,0.7); padding: 30px;">✨ 暂无快捷站点，点击上方按钮添加你的常用网站吧~</div>`;
+                return;
+            }
+            shortcutsGrid.innerHTML = '';
+            sitesList.forEach((site, idx) => {
+                const card = document.createElement('div');
+                card.className = 'site-card';
+                // 跳转事件
+                card.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('delete-site')) return;
+                    if (site.url) {
+                        window.open(site.url, '_blank');
+                    }
+                });
+                // 图标区域
+                const iconSpan = document.createElement('div');
+                iconSpan.className = 'site-favicon';
+                iconSpan.textContent = site.icon || '🔗';
+                const nameSpan = document.createElement('div');
+                nameSpan.className = 'site-name';
+                nameSpan.textContent = site.name.length > 12 ? site.name.slice(0,10)+'..' : site.name;
+                // 删除按钮
+                const delBtn = document.createElement('div');
+                delBtn.className = 'delete-site';
+                delBtn.textContent = '✕';
+                delBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeSiteAtIndex(idx);
+                });
+                card.appendChild(iconSpan);
+                card.appendChild(nameSpan);
+                card.appendChild(delBtn);
+                shortcutsGrid.appendChild(card);
+            });
+        }
+
+        // 移除网站
+        function removeSiteAtIndex(index) {
+            if (index >= 0 && index < sitesList.length) {
+                sitesList.splice(index, 1);
+                saveSites();
+                renderShortcuts();
+            }
+        }
+
+        // 添加新网站 (弹窗简单友好)
+        function addNewSite() {
+            let siteName = prompt("请输入网站名称 (例如: 网易云音乐)", "我的站点");
+            if (!siteName) return;
+            let siteUrl = prompt("请输入网址 (需包含http://或https://)", "https://");
+            if (!siteUrl) return;
+            if (!siteUrl.startsWith('http')) {
+                siteUrl = 'https://' + siteUrl;
+            }
+            let siteIcon = prompt("请输入图标 (一个emoji 或 字母)", "🌟");
+            if (!siteIcon) siteIcon = "🌐";
+            // 限制图标长度
+            if (siteIcon.length > 4) siteIcon = "🔖";
+            sitesList.push({
+                name: siteName.trim(),
+                url: siteUrl,
+                icon: siteIcon
+            });
+            saveSites();
+            renderShortcuts();
+        }
+
+        // 百度搜索执行
+        function performSearch() {
+            let query = searchInput.value.trim();
+            if (query === "") {
+                // 趣味微提示
+                searchInput.placeholder = "✨ 输入点什么都行~";
+                setTimeout(() => {
+                    searchInput.placeholder = "探索知识海洋, 输入关键词...";
+                }, 1500);
+                return;
+            }
+            const encodedQuery = encodeURIComponent(query);
+            window.open(SEARCH_ENGINE + encodedQuery, '_blank');
+        }
+
+        // 支持回车搜索
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+        searchBtn.addEventListener('click', performSearch);
+
+        // 添加网站按钮事件
+        addSiteBtn.addEventListener('click', addNewSite);
+
+        // ---------- 背景光感自定义 ----------
+        // 上传背景图片
+        uploadBgBtn.addEventListener('click', () => {
+            bgFileInput.click();
+        });
+        bgFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const imgUrl = evt.target.result;
+                    bgImage.src = imgUrl;
+                    // 存储背景到 localStorage
+                    localStorage.setItem('custom_bg', imgUrl);
+                    // 附加额外光感动效增强
+                    document.body.style.background = "transparent";
+                    applyDynamicGlow();
+                };
+                reader.readAsDataURL(file);
+            } else {
+                alert("请选择有效的图片文件");
+            }
+            bgFileInput.value = '';
+        });
+
+        // 重置默认背景 (唯美自然光感)
+        function resetToDefaultBackground() {
+            const defaultImg = "https://picsum.photos/id/104/1920/1080";  // 静谧风景
+            bgImage.src = defaultImg;
+            localStorage.removeItem('custom_bg');
+            applyDynamicGlow();
+        }
+
+        resetBgBtn.addEventListener('click', resetToDefaultBackground);
+
+        // 加载保存的背景
+        function loadStoredBackground() {
+            const savedBg = localStorage.getItem('custom_bg');
+            if (savedBg && savedBg.startsWith('data:image') || savedBg.startsWith('http')) {
+                bgImage.src = savedBg;
+            } else {
+                bgImage.src = "https://picsum.photos/id/104/1920/1080";
+            }
+        }
+
+        // 增强光效微调 (根据背景动态调整亮度)
+        function applyDynamicGlow() {
+            // 只是追加一个动态class, 已经默认有光感，不需要过多操作
+            const overlay = document.querySelector('.light-overlay');
+            if (overlay) {
+                // 轻微效果刷新
+                overlay.style.opacity = '0.99';
+                setTimeout(() => { overlay.style.opacity = ''; }, 50);
+            }
+        }
+
+        // ---------- 额外: 沉浸鼠标跟随光晕效果(更高级光感) ----------
+        const ambientDiv = document.createElement('div');
+        ambientDiv.style.position = 'fixed';
+        ambientDiv.style.width = '400px';
+        ambientDiv.style.height = '400px';
+        ambientDiv.style.borderRadius = '50%';
+        ambientDiv.style.background = 'radial-gradient(circle, rgba(255,220,150,0.15), transparent 70%)';
+        ambientDiv.style.pointerEvents = 'none';
+        ambientDiv.style.zIndex = '-1';
+        ambientDiv.style.filter = 'blur(40px)';
+        ambientDiv.style.transition = 'transform 0.1s ease-out';
+        document.body.appendChild(ambientDiv);
+        
+        document.addEventListener('mousemove', (e) => {
+            const x = e.clientX;
+            const y = e.clientY;
+            ambientDiv.style.transform = `translate(${x - 200}px, ${y - 200}px)`;
+        });
+
+        // 背景随机闪烁星光粒子 (轻柔光效)
+        function createSparkles() {
+            const sparkContainer = document.createElement('div');
+            sparkContainer.style.position = 'fixed';
+            sparkContainer.style.top = 0;
+            sparkContainer.style.left = 0;
+            sparkContainer.style.width = '100%';
+            sparkContainer.style.height = '100%';
+            sparkContainer.style.pointerEvents = 'none';
+            sparkContainer.style.zIndex = '-1';
+            for(let i = 0; i < 70; i++) {
+                const star = document.createElement('div');
+                star.style.position = 'absolute';
+                star.style.width = Math.random() * 2 + 1 + 'px';
+                star.style.height = star.style.width;
+                star.style.backgroundColor = `rgba(255, 235, 180, ${Math.random() * 0.4 + 0.1})`;
+                star.style.borderRadius = '50%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.filter = 'blur(1px)';
+                star.style.opacity = Math.random() * 0.6;
+                star.style.animation = `floatStar ${Math.random() * 8 + 4}s infinite alternate`;
+                sparkContainer.appendChild(star);
+            }
+            document.body.appendChild(sparkContainer);
+            // 添加关键帧动画
+            if (!document.querySelector('#starAnimationStyle')) {
+                const style = document.createElement('style');
+                style.id = 'starAnimationStyle';
+                style.innerHTML = `@keyframes floatStar {
+                    0% { transform: translateY(0px) scale(1); opacity: 0.2;}
+                    100% { transform: translateY(-15px) scale(1.2); opacity: 0.7;}
+                }`;
+                document.head.appendChild(style);
+            }
+        }
+        createSparkles();
+
+        // 初始化所有
+        function init() {
+            loadSites();
+            loadStoredBackground();
+            // 如果用户没有存储背景，但仍然保留光感默认
+            applyDynamicGlow();
+            // 预置优雅字体备用
+        }
+        init();
+
+        // 捕获删除和额外焦点使样式更沉浸
+        window.addEventListener('load', () => {
+            // 添加平滑呼吸光晕动画给搜索框
+            const searchBoxDiv = document.querySelector('.search-box');
+            if (searchBoxDiv) {
+                setInterval(() => {
+                    if (!searchBoxDiv.matches(':focus-within')) {
+                        searchBoxDiv.style.transition = 'box-shadow 0.2s';
+                    }
+                }, 300);
+            }
+        });
+        
+        // 自动补全 / 防抖: 无额外内容，保持轻量
+        console.log("沉浸式搜索页面已加载 | 百度搜索引擎 + 自定义背景常用站点 | 光感特效全开");
+    </script>
+</body>
+</html>
